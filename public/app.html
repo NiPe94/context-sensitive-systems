@@ -127,19 +127,19 @@
 
         state.data.forEach((measurement)=>{
           columns.forEach((name, index) => {
-            means[app] += measurement[name];
+            means[index] += measurement[name];
           });
         });
 
 
         columns.forEach((name, index) => {
-          means[app] = means[app] / state.data.length;
+          means[index] = means[index] / state.data.length;
         });
 
         // variances
         state.data.forEach((measurement)=>{
           columns.forEach((name, index) => {
-            variances[app] += ((measurement[name] - means[app])**2) / state.data.length;
+            variances[index] += ((measurement[name] - means[index])**2) / state.data.length;
           });
         });
 
