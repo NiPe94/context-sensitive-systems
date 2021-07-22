@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+
+<input id="url" value="http://"> <button id="button">Load</button>
+
+<div id="motion"></div>
+
+<style type="text/css">
+    .iframe_normal {
+        zoom: 1.0;
+        -moz-transform:scale(1.0);
+        -moz-transform-origin: 0 0;
+        -o-transform: scale(1.0);
+        -o-transform-origin: 0 0;
+        -webkit-transform: scale(1.0);
+        -webkit-transform-origin: 0 0;
+    }
+
+    .iframe_large {
+        zoom: 1.15;
+        -moz-transform:scale(1.15);
+        -moz-transform-origin: 0 0;
+        -o-transform: scale(1.15);
+        -o-transform-origin: 0 0;
+        -webkit-transform: scale(1.15);
+        -webkit-transform-origin: 0 0;
+    }
+
+    .iframe_walking {
+        zoom: 1.0;
+        -moz-transform:scale(1.0);
+        -moz-transform-origin: 0 0;
+        -o-transform: scale(1.0);
+        -o-transform-origin: 0 0;
+        -webkit-transform: scale(1.0);
+        -webkit-transform-origin: 0 0;
+
+        -webkit-filter: contrast(20%); /* Safari 6.0 - 9.0 */
+        filter: contrast(20%);
+    }
+
+    iframe {
+        width: 1px;
+        min-width: 100%;
+        *width: 100%;
+    }
+</style>
+
+<iframe src="" height="400" id="frame"></iframe>
+
+
+<script>
+
+  function loadPage(e){
+    document.getElementById('frame').src = document.getElementById('url').value;;
+  }
+  button.onclick = loadPage;
+
+</script>
+
+
+
+<script>
+  // add state variable
+  let state = {};
+  let batch = [];
+  let lastInsert = Date.now();
+  let lastSent;
+
+  // counter so I collect only data for 30sec
+  let counter = 0;
+  const motionDiv = document.getElementById('motion');
+
+  function deviceMotionHandler(motion) {
+    // collect data
+    const data = {
+      x: motion.acceleration.x || 0,
+      y: motion.acceleration.y || 0,
+      z: motion.acceleration.z || 0,
+      alpha: motion.rotationRate.alpha || 0,
+      beta:  motion.rotationRate.beta || 0,
+      gamma:  motion.rotationRate.gamma || 0,
+    };
+
+    // store data in state object every 0.3s (so in total 20 per second)
+    if((Date.now() - lastInsert) > 40) {
+      // set lastInsert to now
+      lastInsert = Date.now();
+
+      // store data in batch
+      // only if we do not already have 20 samples
+      if(batch.length < 20) {
+        batch.push(data);
+      }
+
+      // print data
+      console.log('batch:', batch);
+    }
+
+    // show current motion
+
+    // send data every second
+    if((Date.now() - lastSent) > 1000) {
+      // add timestamp to batch
+      state = {
+        data: batch
+      };
+
+      // set lastSent to now
+      lastSent = Date.now();
+      counter++;
+
+     if (true) {
+
+        // Features:
+        let means = [0,0,0,0,0,0];
+        let variances = [0,0,0,0,0,0];
+
+        let columns = ['alpha', 'beta', 'gamma', 'x', 'y', 'z'];
+
+        state.data.forEach((measurement)=>{
+          columns.forEach((name, index) => {
+            means[app] += measurement[name];
+          });
+        });
+
+
+        columns.forEach((name, index) => {
+          means[app] = means[app] / state.data.length;
+        });
+
+        // variances
+        state.data.forEach((measurement)=>{
+          columns.forEach((name, index) => {
+            variances[app] += ((measurement[name] - means[app])**2) / state.data.length;
+          });
+        });
+
+        let features = means.concat(variances).filter((x,idx) => [0,6,10].includes(idx));
+       // let features = [means[0], variances[0], variances[4]];
+        let pred = clf.predict(features);
+        motionDiv.innerText = pred;
+
+        if (pred === "Resting") {
+          document.getElementById("frame").className = 'iframe_normal';
+        } else if (pred === "Walking") {
+          document.getElementById("frame").className = 'iframe_walking';
+        } else if (pred === "Jumping") {
+          document.getElementById("frame").className = 'iframe_large';
+        }
+      }
+
+      // reset state & batch
+      state = {};
+      batch = [];
+    }
+  }
+
+  window.addEventListener("DOMContentLoaded", () => {
+    lastSent = Date.now();
+
+    // Prediction:
+    // clf = new SVC(3, 3, vectors, coefficients, intercepts, weights, "linear", "auto", 0.0, 3);
+
+    window.addEventListener('devicemotion', deviceMotionHandler);
+  });
+
+</script>
+
+<script src="classifier.js"></script>
+
+
+
+
+
+</body>
+</html>

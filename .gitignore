@@ -1,0 +1,7 @@
+.idea/
+data/
+meta/
+node_modules/
+wal/
+.ipynb_checkpoints
+__pycache__/

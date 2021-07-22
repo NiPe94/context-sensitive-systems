@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
+
+    <!-- Title -->
+    <title>Exercise 1 - Context</title>
+</head>
+<body class="alert alert-info">
+<div class="container">
+
+    <h3 id="act"></h3>
+
+    <div class="row">
+        <div class="col-sm">
+
+            <!-- 1.a) Create a webpage that contains a form with a text field called (call it Context) and a toggle switch -->
+            <form>
+                <div class="form-group">
+                    <label for="subject-name">Subject Name</label>
+                    <input type="text" class="form-control" id="subject-name" placeholder="Name">
+                </div>
+                <div class="row">
+                    <div class="col-sm btn-group" style="padding-bottom: 20px">
+                        <button id="dropdown-button" type="button" class="btn btn-info dropdown-toggle"
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Resting
+                        </button>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item" id="action1">Resting</a>
+                            <a class="dropdown-item" id="action2">Walking</a>
+                            <a class="dropdown-item" id="action3">Jumping</a>
+                        </div>
+
+                    </div>
+                    <div class="col-sm btn-group" style="padding-bottom: 20px">
+                        <button id="dropdown-button-mode" type="button" class="btn btn-secondary dropdown-toggle"
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Training
+                        </button>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item" id="training">Training</a>
+                            <a class="dropdown-item" id="predicting">Predicting</a>
+                            <a class="dropdown-item" id="predicting2">Predicting on device</a>
+                        </div>
+                    </div>
+                    <div class="custom-control custom-switch" style="width: 100%; padding-bottom: 20px">
+                        <input type="checkbox" class="custom-control-input" id="switch" style="position: relative;">
+                        <label id="switch-label" class="custom-control-label" for="switch">Not Recording</label>
+                    </div>
+                </div>
+
+            </form>
+
+        </div>
+        <div class="col-sm" id="state">
+            <div>Orientation:<div id="orientation" style="padding-left: 10px"></div></div>
+            <div>Motion<div id="motion" style="padding-left: 10px"></div></div>
+        </div>
+        <div class="col-sm">
+            <!-- inform user -->
+            <div id="dm" style="color: gray"></div>
+            <code id="console" style="color: gray"></code>
+        </div>
+    </div>
+</div>
+
+<script>
+    // add state variable
+    let state = {};
+    let batch = [];
+    let lastInsert = Date.now();
+    let lastSent;
+    let subject = 'empty';
+    let mode = 'Training';
+    let actions = ['Resting', 'Walking', 'Jumping'];
+    let counter = 0;
+    let finished;
+
+    // divs
+    const dropdownButton = document.getElementById('dropdown-button');
+    const dropdownButtonMode = document.getElementById('dropdown-button-mode');
+
+    // Action Labeling
+    const actHeading = document.getElementById('act');
+    let activity = dropdownButton.innerText;
+
+    document.getElementById('action1').onclick = function () {
+        dropdownButton.innerText = actions[0];
+        activity = actions[0];
+    };
+
+    document.getElementById('action2').onclick = function () {
+        dropdownButton.innerText = actions[1];
+        activity = actions[1];
+    };
+
+    document.getElementById('action3').onclick = function () {
+        dropdownButton.innerText = actions[2];
+        activity = actions[2];
+    };
+
+    document.getElementById('subject-name').onchange = function () {
+      subject = this.value;
+    };
+
+    document.getElementById('training').onclick = function () {
+      dropdownButtonMode.innerText = 'Training';
+      mode = 'Training';
+    };
+
+    document.getElementById('predicting').onclick = function () {
+      dropdownButtonMode.innerText = 'Predicting';
+      mode = 'Predicting';
+    };
+
+    document.getElementById('predicting2').onclick = function () {
+      dropdownButtonMode.innerText = 'Predicting on device';
+      mode = 'Predicting on device';
+    };
+
+    // get Console div, since we don't have console.log on device
+    const cons = document.getElementById('console');
+
+    function deviceMotionHandler(motion) {
+      // collect data
+      const data = {
+        x: motion.acceleration.x || 0,
+        y: motion.acceleration.y || 0,
+        z: motion.acceleration.z || 0,
+        alpha: motion.rotationRate.alpha || 0,
+        beta:  motion.rotationRate.beta || 0,
+        gamma:  motion.rotationRate.gamma || 0,
+        activity,
+        subject,
+        timestamp: Date.now(),
+      };
+
+      // store data in state object every 0.3s (so in total 20 per second)
+      if((Date.now() - lastInsert) > 40) {
+        // set lastInsert to now
+        lastInsert = Date.now();
+
+        // store data in batch
+        // only if we do not already have 20 samples
+        if(batch.length < 20) {
+          batch.push(data);
+        }
+
+        // print data
+        console.log('batch:', batch);
+      }
+
+      // send data every second
+      if((Date.now() - lastSent) > 1000) {
+        // add timestamp to batch
+        state = {
+          data: batch
+        };
+
+        // set lastSent to now
+        lastSent = Date.now();
+        counter++;
+
+        // 1.d) Use influent (https://github.com/gobwas/influent) to write the sensor data to the database within the event listener
+        // (Tip: Use Batch and write asynchronously every second or so. You may already aggregate the results to 20 samples per seconds)
+        if(mode === 'Training' && counter < 30) {
+          fetch('/influent', {method: 'POST',  headers: {'Content-Type': 'application/json'}, body: JSON.stringify(state)})
+            .then(() => {
+              cons.innerText += 'OK';
+            })
+            .catch((err) => console.log(err));
+
+          // only gather 30sec of training data
+          if(counter >= 30 && !finished) {
+            cons.innerText += 'FINISHED';
+            finished = true;
+            document.getElementById('switch').checked = false;
+            window.removeEventListener('devicemotion', deviceMotionHandler);
+          }
+
+        } else if(mode === 'Predicting') {
+          fetch('/predict', {method: 'POST',  headers: {'Content-Type': 'application/json'}, body: JSON.stringify(state)})
+            .then((response) => {
+              if (response.status !== 200) {
+                return;
+              }
+
+              response.json().then(function(data) {
+                actHeading.innerText = data.data;
+              });
+
+            })
+            .catch((err) => console.log(err));
+        } else if (mode === 'Predicting on device') {
+
+
+            // Features:
+            let features = [];
+            let means = [0,0,0,0,0,0];
+            let variances = [0,0,0,0,0,0];
+
+            let columns = ['alpha', 'beta', 'gamma', 'x', 'y', 'z'];
+
+            state.data.forEach((measurement)=>{
+                columns.forEach((name, index) => {
+                  means[index] += measurement[name];
+                });
+            });
+
+            columns.forEach((name, index) => {
+                means[index] = means[index] / state.data.length;
+            });
+
+            // variances
+            state.data.forEach((measurement)=>{
+                columns.forEach((name, index) => {
+                  variances[index] += ((measurement[name] - means[index])**2) / state.data.length;
+                });
+            });
+
+            // concat feature vector
+            features = means.concat(variances);
+            cons.innerText = features.toString();
+
+            // set prediction in html
+            actHeading.innerText = clf.predict(features);
+        }
+
+        // reset state & batch
+        state = {};
+        batch = [];
+      }
+    }
+
+    // 1.b) Add an EventListener to the DeviceMotionEvent that gets enabled on Toggle
+    document.getElementById('switch').onchange = function () {
+      // get switch
+      const label = document.getElementById('switch-label');
+
+      // check if switch is checked
+      if(this.checked) {
+        // store current time
+        lastSent = Date.now();
+
+        // Show that switch is enabled
+        label.innerText = 'Recording...';
+
+        // inform user about supported device motion
+        const div = document.getElementById('dm');
+
+        // check device motion and add eventHandler
+        if (window.DeviceMotionEvent) {
+          window.addEventListener('devicemotion', deviceMotionHandler);
+          div.innerText = 'DeviceMotion: ✓';
+        } else {
+          div.innerText = 'DeviceMotion: ✗';
+        }
+
+      } else {
+        label.innerText = 'Not Recording';
+        window.removeEventListener('devicemotion', deviceMotionHandler);
+      }
+
+    };
+
+</script>
+
+<!-- Bootstrap -->
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k" crossorigin="anonymous"></script>
+
+<script src="classifier.js"></script>
+
+</body>
+</html>
