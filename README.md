@@ -1,2 +1,2 @@
-# Context sensitive Systems
-This project contains the app needed for the lecture
+# Context sensitive Systems Lecture - Exercise
+This project contains the app.
