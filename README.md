@@ -1,2 +1,2 @@
-# context-sensitive-systems
-Contains the context sensitive app needed for the KIT lecture context sensitive systems
+# Context sensitive Systems
+This project contains the app needed for the lecture
